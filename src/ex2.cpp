@@ -92,17 +92,18 @@ int main (int argc, char * * argv) {
  double b = 0.143;
  double mc = 1.48;
  double u = mc/2;
+ double l = 1;
 
 
  Variable r;
- GENFUNCTION V=-4*alpha_s/(3*r) + b*r;
+ GENFUNCTION V=-4*alpha_s/(3*r) + l*(l+1)/2.0/r/r/u+ b*r;
  MatrixXd H=MatrixXd::Zero(size,size);
  for (int i=0;i<H.rows();i++) {
    int j=i+1;
-   H(i,i)+= 1.0/delta/delta;
+   H(i,i)+= 1.0/delta/delta/u;
    if (j>0) H(i,i)+= V(j*delta);
-   if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta;
-   if (i>0) H(i,i-1) -= 1/2.0/delta/delta;
+   if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+   if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
  }
  SelfAdjointEigenSolver<MatrixXd> solver(H);
  std::cout << solver.eigenvalues() << std::endl;
