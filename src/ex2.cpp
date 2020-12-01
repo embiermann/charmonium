@@ -105,7 +105,7 @@ int main (int argc, char * * argv) {
    if (i>0) H(i,i-1) -= 1/2.0/delta/delta;
  }
  SelfAdjointEigenSolver<MatrixXd> solver(H);
- std::cout solver.eigenvalues() << std::endl;
+ std::cout << solver.eigenvalues() << std::endl;
 
 
   // Generate states:
