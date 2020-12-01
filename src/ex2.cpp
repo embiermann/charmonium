@@ -81,7 +81,31 @@ vector<Is>         classify={{0,  MINUS,  PLUS },
 
 
 
+
 int main (int argc, char * * argv) {
+
+  //
+ double max=4; // maximum extent of wave function
+ double size=400; // number of steps.
+ double delta=max/size; // mesh spacing
+ double alpha_s = 0.546;
+ double b = 0.143;
+ double mc = 1.48;
+ double u = mc/2;
+
+
+ Variable r;
+ GENFUNCTION V=-4*alpha_s/(3*r) + b*r;
+ MatrixXd H=MatrixXd::Zero(size,size);
+ for (int i=0;i<H.rows();i++) {
+   int j=i+1;
+   H(i,i)+= 1.0/delta/delta;
+   if (j>0) H(i,i)+= V(j*delta);
+   if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta;
+   if (i>0) H(i,i-1) -= 1/2.0/delta/delta;
+ }
+ SelfAdjointEigenSolver<MatrixXd> solver(H);
+ std::cout solver.eigenvalues() << std::endl;
 
 
   // Generate states:
