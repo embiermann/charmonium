@@ -46,6 +46,16 @@ struct CharmState {
   double mass;
 };
 
+struct CharmState_new {
+  int  N;
+  unsigned int  J;
+  SIGN P;
+  SIGN C;
+  string name;
+  std::vector<double> v; mass;
+
+};
+
 class Is {
 public:
   Is(int J, SIGN P, SIGN C):J(J),P(P),C(C){}
@@ -83,7 +93,21 @@ vector<Is>         classify={{0,  MINUS,  PLUS },
 
 
 int main (int argc, char * * argv) {
-
+  vector<CharmState> simulated_state={
+        {1,0,MINUS, PLUS,"ηc(1S)",2983.4 },
+        {2,0,MINUS, PLUS,"ηc(2S)",3639.2 },
+        {1,0,PLUS, PLUS,"χc0(1P)",3414.75 },
+        {1,1,PLUS, PLUS,"χc1(1P)",3510.66 },
+        {1,2,PLUS, PLUS,"χc2(1P)",3556.20 },
+        {1,1,PLUS, MINUS,"hc(1P)",3525.38 },
+        {2,0,PLUS, PLUS,"χc0(2P)",3860 },
+        {2,1,PLUS, PLUS,"χc1(2P)",3871.69 },
+        {2,2,PLUS, PLUS,"χc2(2P)",3927.20 },
+        {1,1,MINUS,MINUS,"J/ψ(1S)",3096.9},
+        {1,1,MINUS,MINUS,"ψ(2S)",3686.10},
+        {1,1,MINUS,MINUS,"ψ(3770)",3770},
+        {2,1,MINUS,MINUS,"ψ(4160)",4160}
+  };
   //
  double max=4; // maximum extent of wave function
  double size=400; // number of steps.
@@ -95,27 +119,33 @@ int main (int argc, char * * argv) {
  double l = 1;
 
 
- Variable r;
- GENFUNCTION V=-4*alpha_s/(3*r) + l*(l+1)/2.0/r/r/u+ b*r;
- 
+ Variable r; 
 
  // pick the first two values
  
 
 
   // Generate states:
+  int count = 0;
   for (unsigned int L=0;L<=2;L++) {
+
+
+    // basic structure
+
+        // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
+
+
+
     for (unsigned int S=0;S<=1;S++) {
       int JMIN=abs(int(L-S));
       for (unsigned int J=JMIN;J<=L+S;J++) {
-        // basic structure
         GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
         // hyperfine
-        GENFUNCTION V_hyp = ;
-        // fine structure
-        GENFUNCTION V_fs = ;
+        // GENFUNCTION V_hyp = 0*r;
+        // // fine structure
+        // GENFUNCTION V_fs = 0*r;
         // total potential
-        GENFUNCTION V = V_basic + V_hyp + V_fs;
+        GENFUNCTION V = V_basic;
 
         //
         MatrixXd H=MatrixXd::Zero(size,size);
@@ -126,11 +156,12 @@ int main (int argc, char * * argv) {
           if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
           if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
           // plus l item
-          if (j>0) H(i,i)+= L*(L+1)/2.0/r/r/u;
+          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+          H(i,i)+= L_item(j*delta);
         }
         SelfAdjointEigenSolver<MatrixXd> solver(H);
-        // std::cout << solver.eigenvalues() << std::endl;
-      }
+        // loop through the vector
+        for (unsigned)
     }
   }
   
