@@ -97,16 +97,10 @@ int main (int argc, char * * argv) {
 
  Variable r;
  GENFUNCTION V=-4*alpha_s/(3*r) + l*(l+1)/2.0/r/r/u+ b*r;
- MatrixXd H=MatrixXd::Zero(size,size);
- for (int i=0;i<H.rows();i++) {
-   int j=i+1;
-   H(i,i)+= 1.0/delta/delta/u;
-   if (j>0) H(i,i)+= V(j*delta);
-   if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
-   if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
- }
- SelfAdjointEigenSolver<MatrixXd> solver(H);
- std::cout << solver.eigenvalues() << std::endl;
+ 
+
+ // pick the first two values
+ 
 
 
   // Generate states:
@@ -114,6 +108,28 @@ int main (int argc, char * * argv) {
     for (unsigned int S=0;S<=1;S++) {
       int JMIN=abs(int(L-S));
       for (unsigned int J=JMIN;J<=L+S;J++) {
+        // basic structure
+        GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
+        // hyperfine
+        GENFUNCTION V_hyp = ;
+        // fine structure
+        GENFUNCTION V_fs = ;
+        // total potential
+        GENFUNCTION V = V_basic + V_hyp + V_fs;
+
+        //
+        MatrixXd H=MatrixXd::Zero(size,size);
+        for (int i=0;i<H.rows();i++) {
+          int j=i+1;
+          H(i,i)+= 1.0/delta/delta/u;
+          if (j>0) H(i,i)+= V(j*delta);
+          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+          // plus l item
+          if (j>0) H(i,i)+= L*(L+1)/2.0/r/r/u;
+        }
+        SelfAdjointEigenSolver<MatrixXd> solver(H);
+        // std::cout << solver.eigenvalues() << std::endl;
       }
     }
   }
