@@ -100,6 +100,8 @@ vector<CharmState_simu> state_simu;
 
 
 
+
+
 int main (int argc, char * * argv) {
   //
  double max=20; // maximum extent of wave function
@@ -164,54 +166,125 @@ int main (int argc, char * * argv) {
 
     // basic structure
     // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
-    for (unsigned int s=0; s<=1; s++) {
-      GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
-    // hyperfine
-    GENFUNCTION SS = (ss*ss - (3/2)*(3/2) -(1/2)*(3/2))/2;
-
-    GENFUNCTION V_hyp = (32*M_PI*alpha_s/(9*mc*mc))*pow((sigma/sqrt(M_PI)),3)*exp(-sigma*sigma*r*r)*SS(s);
-    // // fine structure
-    // GENFUNCTION V_fs = 0*r;
-    // total potential
-    GENFUNCTION V = V_basic + V_hyp;
-
-    //
-    MatrixXd H=MatrixXd::Zero(size,size);
-    for (int i=0;i<H.rows();i++) {
-      int j=i+1;
-      H(i,i)+= 1.0/delta/delta/u;
-      if (j>0) H(i,i)+= V(j*delta);
-      if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
-      if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
-      // plus l item
-      GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
-      H(i,i)+= L_item(j*delta);
-    }
-    SelfAdjointEigenSolver<MatrixXd> solver(H);
-    for (unsigned int N=1; N<=2; N++) {
-      // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
-      state_simu.push_back(CharmState_simu());
-      state_simu[count].L = L;
-      state_simu[count].N = N;
-      state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
-      state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(s);
-      
-      // plot
-      viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
-      viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
-      count ++;
-
-    }
-    }
-    
-    for (unsigned int ii=0; ii<state.size(); ii++) {
-
-        // state[ii].mass = (2*mc + solver.eigenvalues()[0]) * 1000;
-        // std::cout << solver.eigenvalues()[0] << std::endl;
-    }
     for (unsigned int S=0;S<=1;S++) {
       int JMIN=abs(int(L-S));
       for (unsigned int J=JMIN;J<=L+S;J++) {
+        GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
+        // hyperfine
+        GENFUNCTION SS = (ss*ss - (3/2)*(3/2) -(1/2)*(3/2))/2;
+
+        GENFUNCTION V_hyp = (32*M_PI*alpha_s/(9*mc*mc))*pow((sigma/sqrt(M_PI)),3)*exp(-sigma*sigma*r*r)*SS(S);
+        // fine structure
+                // total potential
+        GENFUNCTION V_1 = V_basic + V_hyp;
+        // // fine structure
+        if (J==L+1) {
+          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
+          GENFUNCTION T = (4*alpha_s/r/r/r)*(-L/(6*(2*L+3)));
+          GENFUNCTION V = V_1 + V_fs + T;
+
+          //
+          MatrixXd H=MatrixXd::Zero(size,size);
+        for (int i=0;i<H.rows();i++) {
+          int j=i+1;
+          H(i,i)+= 1.0/delta/delta/u;
+          if (j>0) H(i,i)+= V(j*delta);
+          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+          // plus l item
+          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+          H(i,i)+= L_item(j*delta);
+        }
+        SelfAdjointEigenSolver<MatrixXd> solver(H);
+        for (unsigned int N=1; N<=2; N++) {
+          // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
+          state_simu.push_back(CharmState_simu());
+          state_simu[count].L = L;
+          state_simu[count].N = N;
+          state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
+          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
+          
+          // plot
+          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
+          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          std::cout << state_simu[count].mass << std::endl;
+          count ++;
+
+        }
+        }
+        else if (J==L) {
+          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
+          GENFUNCTION T = (4*alpha_s/r/r/r)/6;
+          GENFUNCTION V = V_1 + V_fs + T;
+
+          //
+          MatrixXd H=MatrixXd::Zero(size,size);
+        for (int i=0;i<H.rows();i++) {
+          int j=i+1;
+          H(i,i)+= 1.0/delta/delta/u;
+          if (j>0) H(i,i)+= V(j*delta);
+          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+          // plus l item
+          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+          H(i,i)+= L_item(j*delta);
+        }
+        SelfAdjointEigenSolver<MatrixXd> solver(H);
+        for (unsigned int N=1; N<=2; N++) {
+          // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
+          state_simu.push_back(CharmState_simu());
+          state_simu[count].L = L;
+          state_simu[count].N = N;
+          state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
+          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
+          
+          // plot
+          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
+          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          std::cout << state_simu[count].mass << std::endl;
+          count ++;
+
+        }
+        }
+        else if (J==L-1) {
+          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
+          GENFUNCTION T = (4*alpha_s/r/r/r)*((L+1)/(6*(2*L-1)));
+          GENFUNCTION V = V_1 + V_fs + T;
+          //
+                  MatrixXd H=MatrixXd::Zero(size,size);
+        for (int i=0;i<H.rows();i++) {
+          int j=i+1;
+          H(i,i)+= 1.0/delta/delta/u;
+          if (j>0) H(i,i)+= V(j*delta);
+          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+          // plus l item
+          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+          H(i,i)+= L_item(j*delta);
+        }
+        SelfAdjointEigenSolver<MatrixXd> solver(H);
+        for (unsigned int N=1; N<=2; N++) {
+          // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
+          state_simu.push_back(CharmState_simu());
+          state_simu[count].L = L;
+          state_simu[count].N = N;
+          state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
+          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
+          
+          // plot
+          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
+          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          std::cout << state_simu[count].mass << std::endl;
+          count ++;
+
+        }
+        }
+        
+        
+        
+
+        //
+
 
       }
     }
