@@ -32,6 +32,8 @@ using namespace Genfun;
 using namespace std;
 
 #include "QatPlotting/PlotPoint.h"
+#include <math.h> 
+#include "QatGenericFunctions/Exp.h"
 
 typedef unique_ptr<PlotFunction1D> PFPtr;
 typedef unique_ptr<PlotProfile>    PPPtr;
@@ -107,8 +109,10 @@ int main (int argc, char * * argv) {
  double b = 0.143;
  double mc = 1.48;
  double u = mc/2;
+ double sigma = 1.095;
+ Exp exp;
 
- Variable r; 
+ Variable r, ss; 
  // pick the first two values
   // Generate states:
 
@@ -160,14 +164,16 @@ int main (int argc, char * * argv) {
 
     // basic structure
     // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
-
-    GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
+    for (unsigned int s=0; s<=1; s++) {
+      GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
     // hyperfine
-    // GENFUNCTION V_hyp = 0*r;
+    GENFUNCTION SS = (ss*ss - (3/2)*(3/2) -(1/2)*(3/2))/2;
+
+    GENFUNCTION V_hyp = (32*M_PI*alpha_s/(9*mc*mc))*pow((sigma/sqrt(M_PI)),3)*exp(-sigma*sigma*r*r)*SS(s);
     // // fine structure
     // GENFUNCTION V_fs = 0*r;
     // total potential
-    GENFUNCTION V = V_basic;
+    GENFUNCTION V = V_basic + V_hyp;
 
     //
     MatrixXd H=MatrixXd::Zero(size,size);
@@ -188,7 +194,7 @@ int main (int argc, char * * argv) {
       state_simu[count].L = L;
       state_simu[count].N = N;
       state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
-      state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N);
+      state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(s);
       
       // plot
       viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
@@ -196,6 +202,8 @@ int main (int argc, char * * argv) {
       count ++;
 
     }
+    }
+    
     for (unsigned int ii=0; ii<state.size(); ii++) {
 
         // state[ii].mass = (2*mc + solver.eigenvalues()[0]) * 1000;
