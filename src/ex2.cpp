@@ -89,6 +89,7 @@ struct CharmState_simu {
   unsigned int N;
   unsigned int L;
   double mass;
+  string name;
 };
 
 
@@ -99,79 +100,18 @@ vector<CharmState_simu> state_simu;
 
 int main (int argc, char * * argv) {
   //
- double max=4; // maximum extent of wave function
+ double max=20; // maximum extent of wave function
  double size=400; // number of steps.
  double delta=max/size; // mesh spacing
  double alpha_s = 0.546;
  double b = 0.143;
  double mc = 1.48;
  double u = mc/2;
- double l = 1;
-
 
  Variable r; 
-
  // pick the first two values
- 
-
-
   // Generate states:
-  int count = 0;
-  for (unsigned int L=0;L<=2;L++) {
 
-
-    // basic structure
-    // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
-
-    GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
-    // hyperfine
-    // GENFUNCTION V_hyp = 0*r;
-    // // fine structure
-    // GENFUNCTION V_fs = 0*r;
-    // total potential
-    GENFUNCTION V = V_basic;
-
-    //
-    MatrixXd H=MatrixXd::Zero(size,size);
-    for (int i=0;i<H.rows();i++) {
-      int j=i+1;
-      H(i,i)+= 1.0/delta/delta/u;
-      if (j>0) H(i,i)+= V(j*delta);
-      if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
-      if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
-      // plus l item
-      GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
-      H(i,i)+= L_item(j*delta);
-    }
-    SelfAdjointEigenSolver<MatrixXd> solver(H);
-    for (unsigned int N=0; N<=1; N++) {
-      // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
-      state_simu.push_back(CharmState_simu());
-      state_simu[count].L = L;
-      state_simu[count].N = N;
-      state_simu[count].mass = (2*mc + solver.eigenvalues()[N]) * 1000;
-      count ++;
-    }
-
-
-
-
-    for (unsigned int ii=0; ii<state.size(); ii++) {
-
-        // state[ii].mass = (2*mc + solver.eigenvalues()[0]) * 1000;
-        // std::cout << solver.eigenvalues()[0] << std::endl;
-
-
-
-    }
-
-    for (unsigned int S=0;S<=1;S++) {
-      int JMIN=abs(int(L-S));
-      for (unsigned int J=JMIN;J<=L+S;J++) {
-
-      }
-    }
-  }
   
   QApplication     app(argc,argv);
   
@@ -213,10 +153,65 @@ int main (int argc, char * * argv) {
   // Hold on to pointers to text:
   vector<PTPtr> textFromPDG;
 
+  // calculate the H
+  int count = 0;
+  for (unsigned int L=0;L<=2;L++) {
+
+
+    // basic structure
+    // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
+
+    GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
+    // hyperfine
+    // GENFUNCTION V_hyp = 0*r;
+    // // fine structure
+    // GENFUNCTION V_fs = 0*r;
+    // total potential
+    GENFUNCTION V = V_basic;
+
+    //
+    MatrixXd H=MatrixXd::Zero(size,size);
+    for (int i=0;i<H.rows();i++) {
+      int j=i+1;
+      H(i,i)+= 1.0/delta/delta/u;
+      if (j>0) H(i,i)+= V(j*delta);
+      if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+      if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+      // plus l item
+      GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+      H(i,i)+= L_item(j*delta);
+    }
+    SelfAdjointEigenSolver<MatrixXd> solver(H);
+    for (unsigned int N=1; N<=2; N++) {
+      // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
+      state_simu.push_back(CharmState_simu());
+      state_simu[count].L = L;
+      state_simu[count].N = N;
+      state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
+      state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N);
+      
+      // plot
+      viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
+      viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+      count ++;
+
+    }
+    for (unsigned int ii=0; ii<state.size(); ii++) {
+
+        // state[ii].mass = (2*mc + solver.eigenvalues()[0]) * 1000;
+        // std::cout << solver.eigenvalues()[0] << std::endl;
+    }
+    for (unsigned int S=0;S<=1;S++) {
+      int JMIN=abs(int(L-S));
+      for (unsigned int J=JMIN;J<=L+S;J++) {
+
+      }
+    }
+  }
+
   // plot simmulated data
   for (unsigned int i=1; i<7; i++) {
-    viewEnergy.add(new PlotPoint(i, state_simu[i].mass));
-  }
+      }
   
 
   
@@ -227,23 +222,23 @@ int main (int argc, char * * argv) {
     //
     {
       auto end=partition(state.begin(),state.end(), classify[c]);
-      for (auto s=state.begin();s!=end;s++) {
+      // for (auto s=state.begin();s!=end;s++) {
 
-      	// plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+      // 	// plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
         
       	
-        plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+      //   plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
 
-      	PlotFunction1D::Properties prop;
-      	prop.pen.setStyle(Qt::DotLine);
-      	prop.pen.setWidth(3.0);
-      	plotFromPDG.back()->setProperties(prop);
-      	viewEnergy.add(plotFromPDG.back().get());
+      // 	PlotFunction1D::Properties prop;
+      // 	prop.pen.setStyle(Qt::DotLine);
+      // 	prop.pen.setWidth(3.0);
+      // 	plotFromPDG.back()->setProperties(prop);
+      // 	viewEnergy.add(plotFromPDG.back().get());
       	
-      	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
-      	viewEnergy.add(textFromPDG.back().get());
+      // 	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
+      // 	viewEnergy.add(textFromPDG.back().get());
 	
-      }
+      // }
 
       // for (auto s=state_simu.begin();s!=end;s++) {
 
