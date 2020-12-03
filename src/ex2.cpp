@@ -34,6 +34,7 @@ using namespace std;
 #include "QatPlotting/PlotPoint.h"
 #include <math.h> 
 #include "QatGenericFunctions/Exp.h"
+#include "QatGenericFunctions/Theta.h"
 
 typedef unique_ptr<PlotFunction1D> PFPtr;
 typedef unique_ptr<PlotProfile>    PPPtr;
@@ -113,6 +114,7 @@ int main (int argc, char * * argv) {
  double u = mc/2;
  double sigma = 1.095;
  Exp exp;
+ Theta theta;
 
  Variable r, ss; 
  // pick the first two values
@@ -159,6 +161,15 @@ int main (int argc, char * * argv) {
   // Hold on to pointers to text:
   vector<PTPtr> textFromPDG;
 
+  PlotProfile prof;
+  {
+    PlotProfile::Properties prop;
+    prop.symbolSize=10;
+    prop.pen.setColor("blue");
+    prop.brush.setStyle(Qt::SolidPattern);
+    prof.setProperties(prop);
+  }
+
   // calculate the H
   int count = 0;
   for (unsigned int L=0;L<=2;L++) {
@@ -171,7 +182,7 @@ int main (int argc, char * * argv) {
       for (unsigned int J=JMIN;J<=L+S;J++) {
         GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
         // hyperfine
-        GENFUNCTION SS = (ss*ss - (3/2)*(3/2) -(1/2)*(3/2))/2;
+        GENFUNCTION SS = (ss*ss - (3.0/2.0)*(3.0/2.0) -(1.0/2.0)*(3.0/2.0))/2.0;
 
         GENFUNCTION V_hyp = (32*M_PI*alpha_s/(9*mc*mc))*pow((sigma/sqrt(M_PI)),3)*exp(-sigma*sigma*r*r)*SS(S);
         // fine structure
@@ -179,22 +190,27 @@ int main (int argc, char * * argv) {
         GENFUNCTION V_1 = V_basic + V_hyp;
         // // fine structure
         if (J==L+1) {
-          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
-          GENFUNCTION T = (4*alpha_s/r/r/r)*(-L/(6*(2*L+3)));
-          GENFUNCTION V = V_1 + V_fs + T;
+          GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
+          GENFUNCTION T = (4.0*alpha_s/r/r/r)*(-L/(6.0*(2.0*L+3.0)))*(1.0/mc/mc);
+          GENFUNCTION V = V_1 + (V_fs + T);
 
           //
           MatrixXd H=MatrixXd::Zero(size,size);
-        for (int i=0;i<H.rows();i++) {
-          int j=i+1;
-          H(i,i)+= 1.0/delta/delta/u;
-          if (j>0) H(i,i)+= V(j*delta);
-          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
-          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
-          // plus l item
-          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
-          H(i,i)+= L_item(j*delta);
-        }
+          for (int i=0;i<H.rows();i++) {
+  
+            int j=i+1;
+            double y = j*delta;
+            if (J<L+S) {
+              y = y + 0.4;
+            }
+            H(i,i)+= 1.0/delta/delta/u;
+            if (j>0) H(i,i)+= V(y);
+            if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+            if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+            // plus l item
+            GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+            H(i,i)+= L_item(y);
+          }
         SelfAdjointEigenSolver<MatrixXd> solver(H);
         for (unsigned int N=1; N<=2; N++) {
           // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
@@ -202,27 +218,53 @@ int main (int argc, char * * argv) {
           state_simu[count].L = L;
           state_simu[count].N = N;
           state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
-          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
+          double p = pow(-1, L+1);
+          double c = pow(-1, L+S);
+          state_simu[count].name = "P=" + to_string(p) + "; C=" + to_string(c);
+          if (J== 0 && p==1 && c ==1) {
+              prof.addPoint(1.5+3, state_simu[count].mass);
+            }
+          else if (J== 0 && p==-1 && c ==1) {
+              prof.addPoint(1.5, state_simu[count].mass);
+            }
+          else if (J== 1 && p==-1 && c ==-1) {
+              prof.addPoint(1.5+1, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==-1) {
+              prof.addPoint(1.5+2, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==1) {
+              prof.addPoint(1.5+4, state_simu[count].mass);
+            }
+          else if (J== 2 && p==1 && c ==1) {
+              prof.addPoint(1.5+5, state_simu[count].mass);
+            }
           
+
           // plot
-          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
-          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          viewEnergy.add(&prof);
+          // viewEnergy.add(new PlotText(J+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
           std::cout << state_simu[count].mass << std::endl;
           count ++;
 
         }
         }
         else if (J==L) {
-          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
-          GENFUNCTION T = (4*alpha_s/r/r/r)/6;
-          GENFUNCTION V = V_1 + V_fs + T;
+          GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
+          GENFUNCTION T = (4.0*alpha_s/r/r/r)/6.0*(1.0/mc/mc);
+          GENFUNCTION V = V_1 + (V_fs + T);
 
           //
           MatrixXd H=MatrixXd::Zero(size,size);
         for (int i=0;i<H.rows();i++) {
+
           int j=i+1;
+          double y = j*delta;
+          if (J<L+S) {
+            y = y + 0.4;
+          }
           H(i,i)+= 1.0/delta/delta/u;
-          if (j>0) H(i,i)+= V(j*delta);
+          if (j>0) H(i,i)+= V(y);
           if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
           if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
           // plus l item
@@ -236,26 +278,51 @@ int main (int argc, char * * argv) {
           state_simu[count].L = L;
           state_simu[count].N = N;
           state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
-          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
-          
+          double p = pow(-1, L+1);
+          double c = pow(-1, L+S);
+          state_simu[count].name = "P=" + to_string(p) + "; C=" + to_string(c);          
+          if (J== 0 && p==1 && c ==1) {
+              prof.addPoint(1.5+3, state_simu[count].mass);
+            }
+          else if (J== 0 && p==-1 && c ==1) {
+              prof.addPoint(1.5, state_simu[count].mass);
+            }
+          else if (J== 1 && p==-1 && c ==-1) {
+              prof.addPoint(1.5+1, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==-1) {
+              prof.addPoint(1.5+2, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==1) {
+              prof.addPoint(1.5+4, state_simu[count].mass);
+            }
+          else if (J== 2 && p==1 && c ==1) {
+              prof.addPoint(1.5+5, state_simu[count].mass);
+            }
+
           // plot
-          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
-          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
-          std::cout << state_simu[count].mass << std::endl;
+          viewEnergy.add(&prof);
+          // viewEnergy.add(new PlotText(J+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          std::cout << "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J) + "; " << state_simu[count].mass << std::endl;
           count ++;
 
         }
         }
         else if (J==L-1) {
-          GENFUNCTION V_fs = (2*alpha_s/(r*r*r) - b/(2*r))*(1/mc/mc)*(J*(J+1)-L*(L+1)-S*(S+1))/2;
-          GENFUNCTION T = (4*alpha_s/r/r/r)*((L+1)/(6*(2*L-1)));
-          GENFUNCTION V = V_1 + V_fs + T;
+          GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
+          GENFUNCTION T = (4.0*alpha_s/r/r/r)*((L+1.0)/(6.0*(2.0*L-1.0)))*(1.0/mc/mc);
+          GENFUNCTION V = V_1 + (V_fs + T);
           //
                   MatrixXd H=MatrixXd::Zero(size,size);
         for (int i=0;i<H.rows();i++) {
+
           int j=i+1;
+          double y = j*delta;
+          if (J<L+S) {
+            y = y + 0.4;
+          }
           H(i,i)+= 1.0/delta/delta/u;
-          if (j>0) H(i,i)+= V(j*delta);
+          if (j>0) H(i,i)+= V(y);
           if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
           if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
           // plus l item
@@ -269,11 +336,30 @@ int main (int argc, char * * argv) {
           state_simu[count].L = L;
           state_simu[count].N = N;
           state_simu[count].mass = (2*mc + solver.eigenvalues()[N-1]) * 1000;
-          state_simu[count].name = "L=" + to_string(L) + "; N=" + to_string(N) + "; s=" + to_string(S) + "; j=" + to_string(J);
-          
-          // plot
-          viewEnergy.add(new PlotPoint(L+1, state_simu[count].mass));
-          viewEnergy.add(new PlotText(L+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+          double p = pow(-1, L+1);
+          double c = pow(-1, L+S);
+          state_simu[count].name = "P=" + to_string(p) + "; C=" + to_string(c);          
+          if (J== 0 && p==1 && c ==1) {
+              prof.addPoint(1.5+3, state_simu[count].mass);
+            }
+          else if (J== 0 && p==-1 && c ==1) {
+              prof.addPoint(1.5, state_simu[count].mass);
+            }
+          else if (J== 1 && p==-1 && c ==-1) {
+              prof.addPoint(1.5+1, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==-1) {
+              prof.addPoint(1.5+2, state_simu[count].mass);
+            }
+          else if (J== 1 && p==1 && c ==1) {
+              prof.addPoint(1.5+4, state_simu[count].mass);
+            }
+          else if (J== 2 && p==1 && c ==1) {
+              prof.addPoint(1.5+5, state_simu[count].mass);
+            }         // plot
+          viewEnergy.add(&prof);  
+          // viewEnergy.add(new PlotText(J+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
+         // viewEnergy.add(new PlotText(J+1-1.0, state_simu[count].mass+100, QString(state_simu[count].name.c_str())));
           std::cout << state_simu[count].mass << std::endl;
           count ++;
 
@@ -303,23 +389,23 @@ int main (int argc, char * * argv) {
     //
     {
       auto end=partition(state.begin(),state.end(), classify[c]);
-      // for (auto s=state.begin();s!=end;s++) {
+      for (auto s=state.begin();s!=end;s++) {
 
-      // 	// plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+      	// plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
         
       	
-      //   plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+        plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
 
-      // 	PlotFunction1D::Properties prop;
-      // 	prop.pen.setStyle(Qt::DotLine);
-      // 	prop.pen.setWidth(3.0);
-      // 	plotFromPDG.back()->setProperties(prop);
-      // 	viewEnergy.add(plotFromPDG.back().get());
+      	PlotFunction1D::Properties prop;
+      	prop.pen.setStyle(Qt::DotLine);
+      	prop.pen.setWidth(3.0);
+      	plotFromPDG.back()->setProperties(prop);
+      	viewEnergy.add(plotFromPDG.back().get());
       	
-      // 	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
-      // 	viewEnergy.add(textFromPDG.back().get());
+      	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
+      	viewEnergy.add(textFromPDG.back().get());
 	
-      // }
+      }
 
       // for (auto s=state_simu.begin();s!=end;s++) {
 
