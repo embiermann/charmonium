@@ -31,6 +31,8 @@ using namespace Eigen;
 using namespace Genfun;
 using namespace std;
 
+#include "QatPlotting/PlotPoint.h"
+
 typedef unique_ptr<PlotFunction1D> PFPtr;
 typedef unique_ptr<PlotProfile>    PPPtr;
 typedef unique_ptr<PlotText>       PTPtr;
@@ -46,15 +48,8 @@ struct CharmState {
   double mass;
 };
 
-struct CharmState_new {
-  int  N;
-  unsigned int  J;
-  SIGN P;
-  SIGN C;
-  string name;
-  std::vector<double> v; mass;
 
-};
+
 
 class Is {
 public:
@@ -89,25 +84,20 @@ vector<Is>         classify={{0,  MINUS,  PLUS },
 			     {1,  PLUS,   PLUS },
 			     {2,  PLUS,   PLUS }};
 
+// simulated data
+struct CharmState_simu {
+  unsigned int N;
+  unsigned int L;
+  double mass;
+};
+
+
+vector<CharmState_simu> state_simu;
+
 
 
 
 int main (int argc, char * * argv) {
-  vector<CharmState> simulated_state={
-        {1,0,MINUS, PLUS,"ηc(1S)",2983.4 },
-        {2,0,MINUS, PLUS,"ηc(2S)",3639.2 },
-        {1,0,PLUS, PLUS,"χc0(1P)",3414.75 },
-        {1,1,PLUS, PLUS,"χc1(1P)",3510.66 },
-        {1,2,PLUS, PLUS,"χc2(1P)",3556.20 },
-        {1,1,PLUS, MINUS,"hc(1P)",3525.38 },
-        {2,0,PLUS, PLUS,"χc0(2P)",3860 },
-        {2,1,PLUS, PLUS,"χc1(2P)",3871.69 },
-        {2,2,PLUS, PLUS,"χc2(2P)",3927.20 },
-        {1,1,MINUS,MINUS,"J/ψ(1S)",3096.9},
-        {1,1,MINUS,MINUS,"ψ(2S)",3686.10},
-        {1,1,MINUS,MINUS,"ψ(3770)",3770},
-        {2,1,MINUS,MINUS,"ψ(4160)",4160}
-  };
   //
  double max=4; // maximum extent of wave function
  double size=400; // number of steps.
@@ -131,37 +121,55 @@ int main (int argc, char * * argv) {
 
 
     // basic structure
+    // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
 
-        // std::cout << solver.eigenvalues()[1]<<L<<";" << std::endl;
+    GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
+    // hyperfine
+    // GENFUNCTION V_hyp = 0*r;
+    // // fine structure
+    // GENFUNCTION V_fs = 0*r;
+    // total potential
+    GENFUNCTION V = V_basic;
+
+    //
+    MatrixXd H=MatrixXd::Zero(size,size);
+    for (int i=0;i<H.rows();i++) {
+      int j=i+1;
+      H(i,i)+= 1.0/delta/delta/u;
+      if (j>0) H(i,i)+= V(j*delta);
+      if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
+      if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
+      // plus l item
+      GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
+      H(i,i)+= L_item(j*delta);
+    }
+    SelfAdjointEigenSolver<MatrixXd> solver(H);
+    for (unsigned int N=0; N<=1; N++) {
+      // state_simu[count].push_back({L, N, (2*mc + solver.eigenvalues()[0]) * 1000});
+      state_simu.push_back(CharmState_simu());
+      state_simu[count].L = L;
+      state_simu[count].N = N;
+      state_simu[count].mass = (2*mc + solver.eigenvalues()[N]) * 1000;
+      count ++;
+    }
 
 
+
+
+    for (unsigned int ii=0; ii<state.size(); ii++) {
+
+        // state[ii].mass = (2*mc + solver.eigenvalues()[0]) * 1000;
+        // std::cout << solver.eigenvalues()[0] << std::endl;
+
+
+
+    }
 
     for (unsigned int S=0;S<=1;S++) {
       int JMIN=abs(int(L-S));
       for (unsigned int J=JMIN;J<=L+S;J++) {
-        GENFUNCTION V_basic=-4*alpha_s/(3*r) + b*r;
-        // hyperfine
-        // GENFUNCTION V_hyp = 0*r;
-        // // fine structure
-        // GENFUNCTION V_fs = 0*r;
-        // total potential
-        GENFUNCTION V = V_basic;
 
-        //
-        MatrixXd H=MatrixXd::Zero(size,size);
-        for (int i=0;i<H.rows();i++) {
-          int j=i+1;
-          H(i,i)+= 1.0/delta/delta/u;
-          if (j>0) H(i,i)+= V(j*delta);
-          if (i< H.rows()-1) H(i,i+1) -= 1/2.0/delta/delta/u;
-          if (i>0) H(i,i-1) -= 1/2.0/delta/delta/u;
-          // plus l item
-          GENFUNCTION L_item = L*(L+1)/2.0/r/r/u;
-          H(i,i)+= L_item(j*delta);
-        }
-        SelfAdjointEigenSolver<MatrixXd> solver(H);
-        // loop through the vector
-        for (unsigned)
+      }
     }
   }
   
@@ -204,9 +212,15 @@ int main (int argc, char * * argv) {
 
   // Hold on to pointers to text:
   vector<PTPtr> textFromPDG;
+
+  // plot simmulated data
+  for (unsigned int i=1; i<7; i++) {
+    viewEnergy.add(new PlotPoint(i, state_simu[i].mass));
+  }
   
 
   
+  // for (size_t c=0;c<classify.size();c++) {
   for (size_t c=0;c<classify.size();c++) {
     //
     // PLOT THE DATA:
@@ -214,21 +228,37 @@ int main (int argc, char * * argv) {
     {
       auto end=partition(state.begin(),state.end(), classify[c]);
       for (auto s=state.begin();s!=end;s++) {
-	
-	
-	
-	plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
-	
-	PlotFunction1D::Properties prop;
-	prop.pen.setStyle(Qt::DotLine);
-	prop.pen.setWidth(3.0);
-	plotFromPDG.back()->setProperties(prop);
-	viewEnergy.add(plotFromPDG.back().get());
-	
-	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
-	viewEnergy.add(textFromPDG.back().get());
+
+      	// plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+        
+      	
+        plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+
+      	PlotFunction1D::Properties prop;
+      	prop.pen.setStyle(Qt::DotLine);
+      	prop.pen.setWidth(3.0);
+      	plotFromPDG.back()->setProperties(prop);
+      	viewEnergy.add(plotFromPDG.back().get());
+      	
+      	textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
+      	viewEnergy.add(textFromPDG.back().get());
 	
       }
+
+      // for (auto s=state_simu.begin();s!=end;s++) {
+
+      //   plotFromPDG.push_back(PFPtr(new PlotFunction1D(FixedConstant(s->mass), RealArg::Gt(c+1.0) && RealArg::Lt(c+2.0))));
+        
+      //   PlotFunction1D::Properties prop;
+      //   prop.pen.setStyle(Qt::DotLine);
+      //   prop.pen.setWidth(3.0);
+      //   plotFromPDG.back()->setProperties(prop);
+      //   viewEnergy.add(plotFromPDG.back().get());
+        
+      //   textFromPDG.push_back(PTPtr(new PlotText(c+1.0, s->mass+100, QString(s->name.c_str()))));
+      //   viewEnergy.add(textFromPDG.back().get());
+  
+      // }
     }
   }
 
