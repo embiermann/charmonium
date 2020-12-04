@@ -192,7 +192,7 @@ int main (int argc, char * * argv) {
         if (J==L+1) {
           GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
           GENFUNCTION T = (4.0*alpha_s/r/r/r)*(-L/(6.0*(2.0*L+3.0)))*(1.0/mc/mc);
-          GENFUNCTION V = V_1 + (V_fs + T);
+          GENFUNCTION V = V_1 + theta(r-40)*(V_fs + T);
 
           //
           MatrixXd H=MatrixXd::Zero(size,size);
@@ -252,7 +252,7 @@ int main (int argc, char * * argv) {
         else if (J==L) {
           GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
           GENFUNCTION T = (4.0*alpha_s/r/r/r)/6.0*(1.0/mc/mc);
-          GENFUNCTION V = V_1 + (V_fs + T);
+          GENFUNCTION V = V_1 + theta(r-40)*(V_fs + T);
 
           //
           MatrixXd H=MatrixXd::Zero(size,size);
@@ -311,7 +311,7 @@ int main (int argc, char * * argv) {
         else if (J==L-1) {
           GENFUNCTION V_fs = (2.0*alpha_s/(r*r*r) - b/(2.0*r))*(1.0/mc/mc)*(J*(J+1.0)-L*(L+1.0)-S*(S+1.0))/2.0;
           GENFUNCTION T = (4.0*alpha_s/r/r/r)*((L+1.0)/(6.0*(2.0*L-1.0)))*(1.0/mc/mc);
-          GENFUNCTION V = V_1 + (V_fs + T);
+          GENFUNCTION V = V_1 + theta(r-40)*(V_fs + T);
           //
                   MatrixXd H=MatrixXd::Zero(size,size);
         for (int i=0;i<H.rows();i++) {
